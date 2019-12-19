@@ -18,7 +18,7 @@ def main(argv):
     source_files = get_source(argv[1])
     static_buffs = get_static_buffs(source_files)
     for _row in static_buffs:
-        should_be_const(_row.get("Source File"))
+        _row["constants"] = should_be_const(_row.get("Source File"))
         
 def get_source(the_path):
     """This function gets all the source code files for the source 
@@ -54,7 +54,6 @@ def get_static_buffs(files):
     Returns:
         vuln_list (list): A list of dicts with files and static buffers in files
     """
-    #TODO and strings
     vuln_list = list()
     for file in files:
         _curr_list = list()        
@@ -71,6 +70,17 @@ def get_static_buffs(files):
     return vuln_list
 
 def should_be_const(file):
+    """Gets all variables that should be declared as const 
+    Args:
+        file (string) : current file that is being checked for varibales that should 
+                    be constant.
+    Returns:
+        const (list): list of all variables that should be constant within this source
+                    code file
+    """
+    mutations = list()
+    variables = list()
+    const = list()
     with open(file, 'r') as code:
         var_list = list()
         for _row in code:
@@ -79,11 +89,35 @@ def should_be_const(file):
             char_var = re.match(r'\w+\s+\*\w+(?:\s+)\=(?:\s+)\"\w+\"\;', _curr)
             if var or char_var:
                 var_list.append(_curr)
-        for _row in var_list:
-            print(_row.split())
+    
+    for _var in var_list:
 
+        _var_change = str(_var.split()[1]) + " ="
+        with open(file, 'r') as code:
+             for _row in code:
+                _curr = _row.strip()
+                if _var.split()[1] in _curr:
+                    variables.append(_curr)
 
+    for _row in variables:
+        dec = re.match(r'[a-z]+\s+[a-z]+\s+\=\s+', _row)
+        dec_two = re.match(r'[a-z]+\s+\*[a-z]+\s+\=\s+', _row)
+        if dec or dec_two:
+            pass
+        else:
+            mutations.append(_row)
 
+    for _row in mutations:
+        mutation = _row.split(" ")[0]
+        for _row in variables:
+            _row_tmp = _row.split(" ")
+            if mutation in _row_tmp:
+                pass
+            else:
+                if _row not in const:
+                    const.append(_row)
+
+    return const
 
 def intrest_obj(source_file, buffs):
     """creates an object for potential vulns in
