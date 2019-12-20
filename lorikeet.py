@@ -19,6 +19,8 @@ def main(argv):
     static_buffs = get_static_buffs(source_files)
     for _row in static_buffs:
         _row["constants"] = should_be_const(_row.get("Source File"))
+    for _row in static_buffs:
+        get_func(_row.get("Source File"))
         
 def get_source(the_path):
     """This function gets all the source code files for the source 
@@ -118,6 +120,40 @@ def should_be_const(file):
                     const.append(_row)
 
     return const
+
+def get_func(file):
+    """Returns a dictionary with each function as its own key.
+    Args:
+        file (string): the file we are getting functions frome
+    Returns:
+        funcs (dict): all of the functions as their own key in a dict.
+    """
+    funcs = dict()
+    _curr_func = list()
+    flag = None
+    with open(file, 'r') as file:
+        for _row in file:
+            _row = _row.strip()
+            if '{' in _row:
+                if flag == None:
+                    func_name = _row.split("{")[0]
+                    flag = 1
+                else:
+                    flag += 1
+            elif '}' in _row:
+                flag = flag - 1
+            if flag != 0 or None:
+                _curr_func.append(_row)
+            if flag == 0:
+                _curr_func.append(_row)
+                flag = None
+                funcs[func_name] = _curr_func
+                _curr_func = list()
+
+    return funcs
+
+def vuln_func(file):
+    funcs = ('strcpy', 'gets', 'sprintf', 'memset')
 
 def intrest_obj(source_file, buffs):
     """creates an object for potential vulns in
