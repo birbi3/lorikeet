@@ -27,10 +27,12 @@ def main(argv):
             _row['constants'].append(should_be_const(_row.get('functions').get(_func)))
         for _const in _row.get('constants'):
             if _const:
-                print(_const)
+                pass
             else:
                 _row['constants'].remove(_const)
 
+    for _row in all_code:   
+        _row['dangerous functions'] = vuln_func(_row.get("Source File"))
 
     for _row in all_code:
         print(json.dumps(_row,indent=4))
@@ -168,7 +170,24 @@ def get_func(file):
     return funcs
 
 def vuln_func(file):
-    funcs = ('strcpy', 'gets', 'sprintf', 'memset')
+    """Checks for commonly misused functions
+    Args:
+        file (string): file being checked
+    Returns:
+        potential_vuln (list): a list of potentially vulnerable functions
+    """
+    funcs = ['strcpy', 'gets', 'sprintf', 'memset', 'stpcpy', 'strcat', 
+            'strcmp']
+    potential_vuln = list()
+    with open(file, 'r') as code:
+        for _row in code:
+            for _func in funcs:
+                if _func in _row:
+                    potential_vuln.append(_row.strip())
+
+    return potential_vuln
+
+
 
 def intrest_obj(source_file, buffs):
     """creates an object for potential vulns in
