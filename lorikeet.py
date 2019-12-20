@@ -16,11 +16,24 @@ def main(argv):
         print("Syntax: ./sast <path_to_file>")
         sys.exit(0)
     source_files = get_source(argv[1])
-    static_buffs = get_static_buffs(source_files)
-    for _row in static_buffs:
-        _row["constants"] = should_be_const(_row.get("Source File"))
-    for _row in static_buffs:
-        get_func(_row.get("Source File"))
+    all_code = get_static_buffs(source_files)
+    for _row in all_code:
+        _row["constants"] = list()
+    for _row in all_code:
+        _row['functions'] = get_func(_row.get("Source File"))
+   
+    for _row in all_code:
+        for _func in _row.get("functions"):
+            _row['constants'].append(should_be_const(_row.get('functions').get(_func)))
+        for _const in _row.get('constants'):
+            if _const:
+                print(_const)
+            else:
+                _row['constants'].remove(_const)
+
+
+    for _row in all_code:
+        print(json.dumps(_row,indent=4))
         
 def get_source(the_path):
     """This function gets all the source code files for the source 
@@ -71,7 +84,7 @@ def get_static_buffs(files):
             vuln_list.append(vuln)
     return vuln_list
 
-def should_be_const(file):
+def should_be_const(code):
     """Gets all variables that should be declared as const 
     Args:
         file (string) : current file that is being checked for varibales that should 
@@ -83,23 +96,22 @@ def should_be_const(file):
     mutations = list()
     variables = list()
     const = list()
-    with open(file, 'r') as code:
-        var_list = list()
-        for _row in code:
-            _curr = _row.strip()
-            var = re.match(r'\w+\s+\w+\s+\=\s+\w+\;', _curr)
-            char_var = re.match(r'\w+\s+\*\w+(?:\s+)\=(?:\s+)\"\w+\"\;', _curr)
-            if var or char_var:
-                var_list.append(_curr)
-    
+
+
+    var_list = list()
+    for _curr in code:
+        var = re.match(r'\w+\s+\w+\s+\=\s+\w+\;', _curr)
+        char_var = re.match(r'\w+\s+\*\w+(?:\s+)\=(?:\s+)\"\w+\"\;', _curr)
+        if var or char_var:
+            var_list.append(_curr)
+
     for _var in var_list:
 
         _var_change = str(_var.split()[1]) + " ="
-        with open(file, 'r') as code:
-             for _row in code:
-                _curr = _row.strip()
-                if _var.split()[1] in _curr:
-                    variables.append(_curr)
+        for _row in code: 
+            _curr = _row.strip()
+            if _var.split()[1] in _curr:
+                variables.append(_curr)
 
     for _row in variables:
         dec = re.match(r'[a-z]+\s+[a-z]+\s+\=\s+', _row)
@@ -118,6 +130,9 @@ def should_be_const(file):
             else:
                 if _row not in const:
                     const.append(_row)
+    for _row in variables:
+        if _row not in mutations:
+            const.append(_row)
 
     return const
 
