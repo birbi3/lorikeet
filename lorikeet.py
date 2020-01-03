@@ -24,7 +24,9 @@ def main(argv):
    
     for _row in all_code:
         for _func in _row.get("functions"):
-            _row['constants'].append(should_be_const(_row.get('functions').get(_func)))
+            const = should_be_const(_row.get('functions').get(_func))
+            if const:
+                _row['constants'].append(const)
         for _const in _row.get('constants'):
             if _const:
                 pass
@@ -35,6 +37,17 @@ def main(argv):
         _row['dangerous functions'] = vuln_func(_row.get("Source File"))
 
     for _row in all_code:
+        ip_adds = list()
+        for _func in _row.get('functions'):
+            ips = get_ip(_row.get('functions').get(_func))
+            if ips:
+                for _ip in ips:
+                    ip_adds.append(_ip)
+        _row['ip'] = ip_adds
+    
+
+    for _row in all_code:
+        del _row['functions']
         print(json.dumps(_row,indent=4))
         
 def get_source(the_path):
@@ -187,7 +200,23 @@ def vuln_func(file):
 
     return potential_vuln
 
+def get_ip(function):
+    """Gets every ip addresses from functions
+    Args:
+        function (list): A list of each line in a function
+    Returns:
+        ips (list): a list of ips found in the function
+    """
+    ips = list()
+    for _row in function:
+        ip = re.match(r'\d+\.\d+\.\d+\.\d+', _row)
+        ip_var = re.match(r'[a-z]+\s+\*[a-z]+\s+\=\s+\"\d+\.\d+\.\d+\.\d+\"\;', _row)
+        if ip:
+            ips.append(_row)
+        if ip_var:
+            ips.append(_row)
 
+    return ips
 
 def intrest_obj(source_file, buffs):
     """creates an object for potential vulns in
